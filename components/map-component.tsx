@@ -36,7 +36,7 @@ export function MapComponent({
 }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationFrameRef = useRef<number>()
+  const animationFrameRef = useRef<number | undefined>(undefined)
   const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lon: -74.006 })
   const [mapZoom, setMapZoom] = useState(15)
   const [mapProvider, setMapProvider] = useState<MapProvider>("google_satellite")
@@ -709,8 +709,48 @@ export function MapComponent({
       const delta = event.deltaY > 0 ? -1 : 1
       const newZoom = Math.max(1, Math.min(20, mapZoom + delta))
       
-      if (newZoom !== mapZoom) {
+      if (newZoom !== mapZoom && canvasRef.current) {
+        // Get cursor position relative to canvas
+        const canvas = canvasRef.current
+        const rect = canvas.getBoundingClientRect()
+        const cursorX = event.clientX - rect.left
+        const cursorY = event.clientY - rect.top
+        
+        // Calculate cursor lat/lon at current zoom using current state
+        const currentScale = Math.pow(2, mapZoom)
+        const centerWorldX = ((mapCenter.lon + 180) / 360) * 256 * currentScale
+        const centerWorldY = ((1 - Math.asinh(Math.tan(deg2rad(mapCenter.lat))) / Math.PI) / 2) * 256 * currentScale
+        
+        const cursorWorldX = centerWorldX + (cursorX - canvas.width / 2)
+        const cursorWorldY = centerWorldY + (cursorY - canvas.height / 2)
+        
+        const cursorLon = (cursorWorldX / (256 * currentScale)) * 360 - 180
+        const n = Math.PI - (2 * Math.PI * cursorWorldY) / (256 * currentScale)
+        const cursorLat = rad2deg(Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))))
+        
+        // Calculate where this cursor point should be at the new zoom level
+        const newScale = Math.pow(2, newZoom)
+        const newCenterWorldX = ((mapCenter.lon + 180) / 360) * 256 * newScale
+        const newCenterWorldY = ((1 - Math.asinh(Math.tan(deg2rad(mapCenter.lat))) / Math.PI) / 2) * 256 * newScale
+        
+        const newCursorWorldX = ((cursorLon + 180) / 360) * 256 * newScale
+        const newCursorWorldY = ((1 - Math.asinh(Math.tan(deg2rad(cursorLat))) / Math.PI) / 2) * 256 * newScale
+        
+        // Calculate adjustment needed to keep cursor at same screen position
+        const requiredCenterWorldX = newCursorWorldX - (cursorX - canvas.width / 2)
+        const requiredCenterWorldY = newCursorWorldY - (cursorY - canvas.height / 2)
+        
+        // Convert back to lat/lon
+        const newCenterLon = (requiredCenterWorldX / (256 * newScale)) * 360 - 180
+        const newCenterN = Math.PI - (2 * Math.PI * requiredCenterWorldY) / (256 * newScale)
+        const newCenterLat = rad2deg(Math.atan(0.5 * (Math.exp(newCenterN) - Math.exp(-newCenterN))))
+        
+        // Apply both changes
         setMapZoom(newZoom)
+        setMapCenter({
+          lat: newCenterLat,
+          lon: newCenterLon
+        })
       }
     }
 

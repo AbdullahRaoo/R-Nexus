@@ -32,9 +32,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <LoadingScreen />
           <SidebarProvider defaultOpen={true}>
-            <div className="flex min-h-screen w-full">
+            <div className="flex h-screen w-full">
               <AppSidebar />
-              <main className="flex-1 overflow-hidden">{children}</main>
+              <main className="flex-1 overflow-hidden h-full">{children}</main>
             </div>
             <Toaster />
           </SidebarProvider>

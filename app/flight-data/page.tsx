@@ -387,75 +387,77 @@ export default function FlightData() {
         </div>
 
         {/* Right Panel - Telemetry & Waypoints */}
-        <div className="w-80 border-l bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="h-full flex flex-col">
-            {/* Telemetry Panel */}
-            <div className="m-4 mb-2">
-              <FlightInstruments telemetry={telemetry} connected={connected} />
-            </div>
+        <div className="w-80 border-l bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-4 p-4">
+              {/* Telemetry Panel */}
+              <div>
+                <FlightInstruments telemetry={telemetry} connected={connected} />
+              </div>
 
-            {/* Mission Planner HUD */}
-            <div className="mx-4 mt-2 flex-1 overflow-y-auto">
-              <MissionPlannerHUD telemetry={telemetry} connected={connected} />
-            </div>
+              {/* Mission Planner HUD */}
+              <div>
+                <MissionPlannerHUD telemetry={telemetry} connected={connected} />
+              </div>
 
-            {/* Pre-Flight Checklist */}
-            <div className="mx-4 mt-2">
-              <PreFlightChecklist telemetry={telemetry} connected={connected} onArmDisarm={handleArmDisarm} />
-            </div>
+              {/* Pre-Flight Checklist */}
+              <div>
+                <PreFlightChecklist telemetry={telemetry} connected={connected} onArmDisarm={handleArmDisarm} />
+              </div>
 
-            {/* Waypoints Panel */}
-            <Card className="mx-4 mt-2 flex-1">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Mission Waypoints</CardTitle>
-                <CardDescription className="text-xs">
-                  {connected && telemetry
-                    ? `Current WP: ${telemetry.mission.current_wp} / ${waypoints.length}`
-                    : "No mission data available"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-64">
-                  {waypoints.length === 0 ? (
-                    <div className="text-center text-sm text-muted-foreground py-8">
-                      {connected ? "No waypoints loaded" : "Connect to view waypoints"}
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="text-xs">
-                          <TableHead className="w-8 p-2">#</TableHead>
-                          <TableHead className="p-2">Command</TableHead>
-                          <TableHead className="w-16 p-2">Alt</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {waypoints.map((waypoint) => (
-                          <TableRow
-                            key={waypoint.seq}
-                            className={`text-xs cursor-pointer ${
-                              waypoint.seq === telemetry?.mission.current_wp ? "bg-green-500/10" : ""
-                            }`}
-                            onClick={() => setSelectedWaypoint(waypoint)}
-                          >
-                            <TableCell className="p-2 font-medium">
-                              <Badge
-                                variant={waypoint.seq === telemetry?.mission.current_wp ? "default" : "outline"}
-                                className="text-xs"
-                              >
-                                {waypoint.seq}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="p-2">CMD_{waypoint.command}</TableCell>
-                            <TableCell className="p-2">{waypoint.z.toFixed(0)}m</TableCell>
+              {/* Waypoints Panel */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Mission Waypoints</CardTitle>
+                  <CardDescription className="text-xs">
+                    {connected && telemetry
+                      ? `Current WP: ${telemetry.mission.current_wp} / ${waypoints.length}`
+                      : "No mission data available"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ScrollArea className="h-64">
+                    {waypoints.length === 0 ? (
+                      <div className="text-center text-sm text-muted-foreground py-8">
+                        {connected ? "No waypoints loaded" : "Connect to view waypoints"}
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="text-xs">
+                            <TableHead className="w-8 p-2">#</TableHead>
+                            <TableHead className="p-2">Command</TableHead>
+                            <TableHead className="w-16 p-2">Alt</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                        </TableHeader>
+                        <TableBody>
+                          {waypoints.map((waypoint) => (
+                            <TableRow
+                              key={waypoint.seq}
+                              className={`text-xs cursor-pointer ${
+                                waypoint.seq === telemetry?.mission.current_wp ? "bg-green-500/10" : ""
+                              }`}
+                              onClick={() => setSelectedWaypoint(waypoint)}
+                            >
+                              <TableCell className="p-2 font-medium">
+                                <Badge
+                                  variant={waypoint.seq === telemetry?.mission.current_wp ? "default" : "outline"}
+                                  className="text-xs"
+                                >
+                                  {waypoint.seq}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="p-2">CMD_{waypoint.command}</TableCell>
+                              <TableCell className="p-2">{waypoint.z.toFixed(0)}m</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

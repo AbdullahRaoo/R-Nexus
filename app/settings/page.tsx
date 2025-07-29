@@ -69,7 +69,8 @@ export default function Settings() {
           </Breadcrumb>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl">
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-4 p-4 pt-0 max-w-4xl mx-auto">
         {/* Appearance Settings */}
         <Card>
           <CardHeader>
@@ -268,6 +269,7 @@ export default function Settings() {
           <Button variant="outline" onClick={handleReset}>
             Reset to Defaults
           </Button>
+        </div>
         </div>
       </div>
     </SidebarInset>
