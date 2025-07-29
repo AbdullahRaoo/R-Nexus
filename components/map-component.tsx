@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, Fragment } from "react"
 import type { TelemetryData, Waypoint } from "@/lib/mavlink-types"
 import { useMavlinkCommands } from "@/hooks/use-mavlink-commands"
 
@@ -82,6 +82,7 @@ export function MapComponent({
     lon: number
     visible: boolean
   } | null>(null)
+  const [submenuTimeout, setSubmenuTimeout] = useState<NodeJS.Timeout | null>(null)
   const [crosshairPos, setCrosshairPos] = useState<{ x: number; y: number } | null>(null)
   const [notification, setNotification] = useState<{
     message: string
@@ -513,16 +514,24 @@ export function MapComponent({
       ctx.lineWidth = 3
       ctx.setLineDash([8, 4])
       ctx.beginPath()
-      let pathStarted = false
+      
+      // Start from home waypoint
+      const homePos = latLonToPixel(waypoints[0].x, waypoints[0].y)
+      ctx.moveTo(homePos.x, homePos.y)
+      
+      // Draw lines to all waypoints in sequence
       for (let i = 1; i < waypoints.length; i++) {
         const pos = latLonToPixel(waypoints[i].x, waypoints[i].y)
-        if (!pathStarted) {
-          ctx.moveTo(pos.x, pos.y)
-          pathStarted = true
-        } else {
-          ctx.lineTo(pos.x, pos.y)
-        }
+        ctx.lineTo(pos.x, pos.y)
       }
+      
+      // Close the mission loop by connecting last waypoint back to home
+      if (waypoints.length > 2) {
+        ctx.strokeStyle = "#10b981" // Green for return path
+        ctx.setLineDash([4, 8]) // Different dash pattern for return
+        ctx.lineTo(homePos.x, homePos.y)
+      }
+      
       ctx.stroke()
       ctx.setLineDash([])
     }
@@ -771,6 +780,33 @@ export function MapComponent({
         
       case "add_mount_control":
         addWaypoint(lat, lon, 0, "DO_MOUNT_CONTROL")
+        break
+        
+      case "delete_waypoint":
+        // Find closest waypoint to clicked location
+        if (waypoints.length > 1) {
+          let closestWaypoint: Waypoint | null = null
+          let minDistance = Infinity
+          
+          waypoints.slice(1).forEach(wp => { // Skip home waypoint
+            const pos = latLonToPixel(wp.x, wp.y)
+            const clickPos = latLonToPixel(lat, lon)
+            const distance = Math.sqrt(
+              Math.pow(pos.x - clickPos.x, 2) + Math.pow(pos.y - clickPos.y, 2)
+            )
+            if (distance < minDistance && distance < 50) { // Within 50 pixels
+              minDistance = distance
+              closestWaypoint = wp
+            }
+          })
+          
+          if (closestWaypoint) {
+            onMapRightClick(lat, lon, -1, (closestWaypoint as Waypoint).seq) // Special signal for deletion
+            showNotification(`Deleted waypoint ${(closestWaypoint as Waypoint).seq}`, 'success')
+          } else {
+            showNotification("No waypoint found near click location", 'error')
+          }
+        }
         break
         
       // Flight mode changes
@@ -1179,6 +1215,7 @@ export function MapComponent({
         }
       }
     }
+    // Close context menu on any click
     setContextMenu(null)
     onMapClick()
   }
@@ -1189,14 +1226,19 @@ export function MapComponent({
     const options = getContextMenuOptions(contextMenu.lat, contextMenu.lon)
 
     return (
-      <div
-        className="fixed bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50 py-1 min-w-48 max-w-64"
-        style={{
-          left: Math.min(contextMenu.x, window.innerWidth - 260), // Prevent menu from going off-screen
-          top: Math.min(contextMenu.y, window.innerHeight - 400),
-        }}
-        onMouseLeave={() => setContextMenu(null)}
-      >
+      <div className="fixed inset-0 z-40">
+        {/* Backdrop to catch clicks outside menu */}
+        <div 
+          className="absolute inset-0"
+          onClick={() => setContextMenu(null)}
+        />
+        <div
+          className="absolute bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50 py-1 min-w-48 max-w-64"
+          style={{
+            left: Math.min(contextMenu.x, window.innerWidth - 260), // Prevent menu from going off-screen
+            top: Math.min(contextMenu.y, window.innerHeight - 400),
+          }}
+        >
         {options.map((option, index) => {
           if (option.separator) {
             return <div key={index} className="border-t border-gray-200 dark:border-gray-600 my-1" />
@@ -1213,6 +1255,20 @@ export function MapComponent({
                     : "hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-200"
                 }`}
                 onClick={() => !option.disabled && !hasSubmenu && handleContextMenuAction(option.action)}
+                onMouseEnter={() => {
+                  if (submenuTimeout) {
+                    clearTimeout(submenuTimeout)
+                    setSubmenuTimeout(null)
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (hasSubmenu) {
+                    const timeout = setTimeout(() => {
+                      // This timeout allows moving to submenu
+                    }, 200)
+                    setSubmenuTimeout(timeout)
+                  }
+                }}
               >
                 <div className="flex items-center gap-2">
                   {option.icon && <span className="w-4 text-center">{option.icon}</span>}
@@ -1232,7 +1288,11 @@ export function MapComponent({
                           ? "text-gray-400 cursor-not-allowed"
                           : "hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-200"
                       }`}
-                      onClick={() => !subOption.disabled && handleContextMenuAction(subOption.action)}
+                      onClick={() => {
+                        if (!subOption.disabled) {
+                          handleContextMenuAction(subOption.action)
+                        }
+                      }}
                     >
                       {subOption.icon && <span className="w-4 text-center">{subOption.icon}</span>}
                       <span className="flex-1">{subOption.label}</span>
@@ -1249,6 +1309,7 @@ export function MapComponent({
           <div className="px-3 py-1 text-xs text-gray-500 dark:text-gray-400">
             {contextMenu.lat.toFixed(6)}, {contextMenu.lon.toFixed(6)}
           </div>
+        </div>
         </div>
       </div>
     )

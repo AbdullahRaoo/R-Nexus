@@ -122,6 +122,13 @@ export function useMAVLink() {
     setWaypoints(prev => [...prev, waypoint])
   }
 
+  const deleteWaypoint = (seq: number) => {
+    setWaypoints(prev => prev.filter(wp => wp.seq !== seq).map((wp, index) => ({
+      ...wp,
+      seq: index // Renumber waypoints
+    })))
+  }
+
   const startMission = () => {
     connectionRef.current?.startMission()
   }
@@ -151,6 +158,7 @@ export function useMAVLink() {
       downloadWaypoints,
       clearWaypoints,
       addWaypoint,
+      deleteWaypoint,
       startMission,
       pauseMission,
       resumeMission,

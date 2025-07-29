@@ -57,6 +57,16 @@ export default function FlightData() {
   const [followDrone, setFollowDrone] = useState(true)
 
   const handleMapRightClick = (lat: number, lon: number, x: number, y: number) => {
+    // Check if this is a waypoint deletion call (when x is -1)
+    if (x === -1) {
+      // This is a waypoint deletion call, y contains the waypoint seq
+      const waypointToDelete = waypoints.find(wp => wp.seq === y)
+      if (waypointToDelete) {
+        handleDeleteWaypoint(waypointToDelete)
+      }
+      return
+    }
+    
     // Check if this is a waypoint addition call (when x and y are 0)
     if (x === 0 && y === 0) {
       // This is a waypoint addition call from the map component
@@ -84,6 +94,38 @@ export default function FlightData() {
 
   const handleMapClick = () => {
     setContextMenu(null)
+  }
+
+  const handleWaypointClick = (waypoint: Waypoint) => {
+    setSelectedWaypoint(waypoint)
+  }
+
+  const handleDeleteWaypoint = (waypointToDelete: Waypoint) => {
+    if (!connected) {
+      toast({
+        title: "Not Connected",
+        description: "Please connect to MAVLink before modifying waypoints",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Don't allow deleting home waypoint (seq 0)
+    if (waypointToDelete.seq === 0) {
+      toast({
+        title: "Cannot Delete Home",
+        description: "Home waypoint cannot be deleted",
+        variant: "destructive",
+      })
+      return
+    }
+
+    commands.deleteWaypoint(waypointToDelete.seq)
+    setSelectedWaypoint(null)
+    toast({
+      title: "Waypoint Deleted",
+      description: `Waypoint ${waypointToDelete.seq} has been removed from mission`,
+    })
   }
 
   const handleContextMenuAction = (action: string) => {
@@ -382,7 +424,7 @@ export default function FlightData() {
                   waypoints={waypoints}
                   onMapRightClick={handleMapRightClick}
                   onMapClick={handleMapClick}
-                  onWaypointClick={setSelectedWaypoint}
+                  onWaypointClick={handleWaypointClick}
                   followDrone={followDrone}
                   connected={connected}
                 />
@@ -535,7 +577,19 @@ export default function FlightData() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={() => setSelectedWaypoint(null)}>Close</Button>
+            <div className="flex justify-between w-full">
+              {selectedWaypoint && selectedWaypoint.seq !== 0 && (
+                <Button 
+                  onClick={() => handleDeleteWaypoint(selectedWaypoint)} 
+                  variant="destructive"
+                  size="sm"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Waypoint
+                </Button>
+              )}
+              <Button onClick={() => setSelectedWaypoint(null)} className="ml-auto">Close</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
