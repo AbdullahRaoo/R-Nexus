@@ -3,6 +3,7 @@
 import type React from "react"
 import { useEffect, useRef, useState, useCallback } from "react"
 import type { TelemetryData, Waypoint } from "@/lib/mavlink-types"
+import { useMavlinkCommands } from "@/hooks/use-mavlink-commands"
 
 interface MapComponentProps {
   telemetry: TelemetryData | null
@@ -24,6 +25,38 @@ interface ContextMenuOption {
   disabled?: boolean
   separator?: boolean
 }
+
+// MAVLink command constants (matching ArduPilot/Mission Planner)
+const MAV_CMD = {
+  WAYPOINT: 16,
+  LOITER_UNLIM: 17,
+  LOITER_TURNS: 18,
+  LOITER_TIME: 19,
+  RETURN_TO_LAUNCH: 20,
+  LAND: 21,
+  TAKEOFF: 22,
+  SPLINE_WAYPOINT: 82,
+  CONDITION_DELAY: 112,
+  DO_JUMP: 177,
+  DO_SET_ROI: 201,
+  DO_MOUNT_CONTROL: 205,
+} as const
+
+// MAVLink frame constants
+const MAV_FRAME = {
+  GLOBAL: 0,
+  LOCAL_NED: 1,
+  MISSION: 2,
+  GLOBAL_RELATIVE_ALT: 3,
+  LOCAL_ENU: 4,
+  GLOBAL_INT: 5,
+  GLOBAL_RELATIVE_ALT_INT: 6,
+  LOCAL_OFFSET_NED: 7,
+  BODY_NED: 8,
+  BODY_OFFSET_NED: 9,
+  GLOBAL_TERRAIN_ALT: 10,
+  GLOBAL_TERRAIN_ALT_INT: 11,
+} as const
 
 export function MapComponent({
   telemetry,
@@ -50,8 +83,33 @@ export function MapComponent({
     visible: boolean
   } | null>(null)
   const [crosshairPos, setCrosshairPos] = useState<{ x: number; y: number } | null>(null)
+  const [notification, setNotification] = useState<{
+    message: string
+    type: 'success' | 'error' | 'info'
+    visible: boolean
+  } | null>(null)
   const tileCache = useRef<Map<string, HTMLImageElement>>(new Map())
   const lastDrawTime = useRef<number>(0)
+
+  // MAVLink commands hook
+  const {
+    sendGuidedWaypoint,
+    sendLoiterCommand,
+    setFlightMode,
+    setArmed,
+    sendTakeoffCommand,
+    setHomePosition,
+    emergencyStop,
+    controlGimbal,
+  } = useMavlinkCommands()
+
+  // Notification helper
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotification({ message, type, visible: true })
+    setTimeout(() => {
+      setNotification(null)
+    }, 3000)
+  }
 
   // Mission Planner's complete right-click context menu for multirotors
   const getContextMenuOptions = (lat: number, lon: number): ContextMenuOption[] => [
@@ -575,6 +633,12 @@ export function MapComponent({
       const y = event.clientY - rect.top
       const { lat, lon } = pixelToLatLon(x, y)
 
+      // If Shift is held, add waypoint directly without context menu
+      if (event.shiftKey) {
+        addWaypoint(lat, lon, 10, "WAYPOINT")
+        return
+      }
+
       setContextMenu({
         x: event.clientX,
         y: event.clientY,
@@ -585,26 +649,352 @@ export function MapComponent({
     }
   }
 
-  const handleContextMenuAction = (action: string) => {
+  const handleContextMenuAction = async (action: string) => {
     if (!contextMenu) return
 
-    console.log(`Context menu action: ${action} at ${contextMenu.lat.toFixed(6)}, ${contextMenu.lon.toFixed(6)}`)
+    const lat = contextMenu.lat
+    const lon = contextMenu.lon
+    
+    console.log(`Context menu action: ${action} at ${lat.toFixed(6)}, ${lon.toFixed(6)}`)
 
     // Handle actions based on Mission Planner functionality
     switch (action) {
       case "fly_to_here":
-        // Send guided mode command
+        if (connected && telemetry?.armed) {
+          // Send guided mode waypoint to UAV for immediate navigation
+          const altitude = telemetry.position.alt_rel || 10
+          console.log(`Commanding drone to fly to: ${lat.toFixed(6)}, ${lon.toFixed(6)} at ${altitude}m`)
+          sendGuidedWaypoint(lat, lon, altitude)
+            .then(() => {
+              console.log("Guided waypoint sent successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to send guided waypoint:", error)
+            })
+        } else {
+          console.warn("Cannot fly to here - drone not connected or not armed")
+        }
         break
+        
       case "loiter_here":
-        // Send loiter command
+        if (connected) {
+          const altitude = telemetry?.position.alt_rel || 10
+          console.log(`Commanding drone to loiter at: ${lat.toFixed(6)}, ${lon.toFixed(6)} at ${altitude}m`)
+          sendLoiterCommand(lat, lon, altitude, false) // false = limited time loiter
+            .then(() => {
+              console.log("Loiter command sent successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to send loiter command:", error)
+            })
+        }
         break
+        
+      case "loiter_unlimited":
+        if (connected) {
+          const altitude = telemetry?.position.alt_rel || 10
+          console.log(`Commanding drone to loiter unlimited at: ${lat.toFixed(6)}, ${lon.toFixed(6)} at ${altitude}m`)
+          sendLoiterCommand(lat, lon, altitude, true) // true = unlimited loiter
+            .then(() => {
+              console.log("Loiter unlimited command sent successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to send loiter unlimited command:", error)
+            })
+        }
+        break
+        
       case "set_home_here":
-        // Set new home position
+        if (connected) {
+          console.log(`Setting home position to: ${lat.toFixed(6)}, ${lon.toFixed(6)}`)
+          setHomePosition(lat, lon, telemetry?.position.alt_rel || 0)
+            .then(() => {
+              console.log("Home position set successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to set home position:", error)
+            })
+        }
         break
-      // Add more action handlers...
+        
+      case "set_rally_point":
+        if (connected) {
+          console.log(`Setting rally point at: ${lat.toFixed(6)}, ${lon.toFixed(6)}`)
+          // TODO: Implement MAVLink rally point command
+        }
+        break
+        
+      // Waypoint addition commands - these add to mission AND send to drone
+      case "add_waypoint_nav":
+        addWaypoint(lat, lon, 10, "WAYPOINT")
+        break
+        
+      case "add_waypoint_spline":
+        addWaypoint(lat, lon, 10, "SPLINE_WAYPOINT")
+        break
+        
+      case "add_takeoff":
+        addWaypoint(lat, lon, 10, "TAKEOFF")
+        break
+        
+      case "add_land":
+        addWaypoint(lat, lon, 0, "LAND")
+        break
+        
+      case "add_rtl":
+        addWaypoint(lat, lon, 0, "RETURN_TO_LAUNCH")
+        break
+        
+      case "add_loiter_unlim":
+        addWaypoint(lat, lon, 10, "LOITER_UNLIM")
+        break
+        
+      case "add_loiter_turns":
+        addWaypoint(lat, lon, 10, "LOITER_TURNS")
+        break
+        
+      case "add_loiter_time":
+        addWaypoint(lat, lon, 10, "LOITER_TIME")
+        break
+        
+      case "add_condition_delay":
+        addWaypoint(lat, lon, 0, "CONDITION_DELAY")
+        break
+        
+      case "add_do_jump":
+        addWaypoint(lat, lon, 0, "DO_JUMP")
+        break
+        
+      case "add_set_roi":
+        addWaypoint(lat, lon, 0, "DO_SET_ROI")
+        break
+        
+      case "add_mount_control":
+        addWaypoint(lat, lon, 0, "DO_MOUNT_CONTROL")
+        break
+        
+      // Flight mode changes
+      case "mode_stabilize":
+        if (connected) setFlightMode("STABILIZE")
+        break
+      case "mode_alt_hold":
+        if (connected) setFlightMode("ALT_HOLD")
+        break
+      case "mode_loiter":
+        if (connected) setFlightMode("LOITER")
+        break
+      case "mode_auto":
+        if (connected) setFlightMode("AUTO")
+        break
+      case "mode_guided":
+        if (connected) setFlightMode("GUIDED")
+        break
+      case "mode_rtl":
+        if (connected) setFlightMode("RTL")
+        break
+      case "mode_land":
+        if (connected) setFlightMode("LAND")
+        break
+      case "mode_brake":
+        if (connected) setFlightMode("BRAKE")
+        break
+      case "mode_throw":
+        if (connected) setFlightMode("THROW")
+        break
+      case "mode_poshold":
+        if (connected) setFlightMode("POSHOLD")
+        break
+        
+      // Gimbal control using actual MAVLink commands
+      case "gimbal_point_here":
+        if (connected) {
+          console.log(`Pointing gimbal to: ${lat.toFixed(6)}, ${lon.toFixed(6)}`)
+          // Calculate gimbal angles to point at location (simplified calculation)
+          const pitch = -45 // Point down at 45 degrees
+          const yaw = 0 // No yaw adjustment for now
+          const roll = 0 // No roll adjustment
+          controlGimbal(pitch, yaw, roll)
+            .then(() => {
+              console.log("Gimbal point command sent successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to control gimbal:", error)
+            })
+        }
+        break
+      case "gimbal_center":
+        if (connected) {
+          console.log("Centering gimbal")
+          controlGimbal(0, 0, 0) // Center gimbal to neutral position
+            .then(() => {
+              console.log("Gimbal center command sent successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to center gimbal:", error)
+            })
+        }
+        break
+        
+      // Preflight actions - using actual MAVLink commands
+      case "arm_motors":
+        if (connected && !telemetry?.armed) {
+          console.log("Arming motors")
+          setArmed(true)
+            .then(() => {
+              console.log("Motors armed successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to arm motors:", error)
+            })
+        }
+        break
+      case "disarm_motors":
+        if (connected && telemetry?.armed) {
+          console.log("Disarming motors")
+          setArmed(false)
+            .then(() => {
+              console.log("Motors disarmed successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to disarm motors:", error)
+            })
+        }
+        break
+      case "takeoff":
+        if (connected && telemetry?.armed) {
+          console.log("Initiating takeoff")
+          sendTakeoffCommand(10) // 10 meter takeoff altitude
+            .then(() => {
+              console.log("Takeoff command sent successfully")
+            })
+            .catch((error) => {
+              console.error("Failed to send takeoff command:", error)
+            })
+        }
+        break
+      case "emergency_stop":
+        if (connected) {
+          console.log("EMERGENCY STOP!")
+          emergencyStop()
+            .then(() => {
+              console.log("Emergency stop command sent")
+            })
+            .catch((error) => {
+              console.error("Failed to send emergency stop:", error)
+            })
+        }
+        break
+        
+      // Map functions
+      case "zoom_to_fit":
+        // Zoom to fit all waypoints
+        if (waypoints.length > 0) {
+          let minLat = waypoints[0].x, maxLat = waypoints[0].x
+          let minLon = waypoints[0].y, maxLon = waypoints[0].y
+          
+          waypoints.forEach(wp => {
+            minLat = Math.min(minLat, wp.x)
+            maxLat = Math.max(maxLat, wp.x)
+            minLon = Math.min(minLon, wp.y)
+            maxLon = Math.max(maxLon, wp.y)
+          })
+          
+          const centerLat = (minLat + maxLat) / 2
+          const centerLon = (minLon + maxLon) / 2
+          setMapCenter({ lat: centerLat, lon: centerLon })
+          
+          // Calculate appropriate zoom level
+          const latDiff = maxLat - minLat
+          const lonDiff = maxLon - minLon
+          const maxDiff = Math.max(latDiff, lonDiff)
+          let newZoom = 15
+          if (maxDiff > 0.1) newZoom = 10
+          else if (maxDiff > 0.01) newZoom = 13
+          else if (maxDiff > 0.001) newZoom = 16
+          setMapZoom(newZoom)
+        }
+        break
+        
+      case "center_home":
+        if (waypoints.length > 0) {
+          setMapCenter({ lat: waypoints[0].x, lon: waypoints[0].y })
+          setMapZoom(16)
+        }
+        break
+        
+      case "center_uav":
+        if (connected && telemetry && telemetry.position.lat !== 0) {
+          setMapCenter({ lat: telemetry.position.lat, lon: telemetry.position.lon })
+          setMapZoom(16)
+        }
+        break
+        
+      default:
+        console.log(`Unhandled context menu action: ${action}`)
     }
 
     setContextMenu(null)
+  }
+
+  // Helper function to add waypoints with actual MAVLink integration
+  const addWaypoint = (lat: number, lon: number, alt: number = 10, commandType: string = "WAYPOINT") => {
+    // Convert command string to MAVLink command number
+    const getCommandNumber = (cmd: string): number => {
+      switch (cmd) {
+        case "WAYPOINT": return MAV_CMD.WAYPOINT
+        case "SPLINE_WAYPOINT": return MAV_CMD.SPLINE_WAYPOINT
+        case "TAKEOFF": return MAV_CMD.TAKEOFF
+        case "LAND": return MAV_CMD.LAND
+        case "RETURN_TO_LAUNCH": return MAV_CMD.RETURN_TO_LAUNCH
+        case "LOITER_UNLIM": return MAV_CMD.LOITER_UNLIM
+        case "LOITER_TURNS": return MAV_CMD.LOITER_TURNS
+        case "LOITER_TIME": return MAV_CMD.LOITER_TIME
+        case "CONDITION_DELAY": return MAV_CMD.CONDITION_DELAY
+        case "DO_JUMP": return MAV_CMD.DO_JUMP
+        case "DO_SET_ROI": return MAV_CMD.DO_SET_ROI
+        case "DO_MOUNT_CONTROL": return MAV_CMD.DO_MOUNT_CONTROL
+        default: return MAV_CMD.WAYPOINT
+      }
+    }
+    
+    const newWaypoint: Waypoint = {
+      seq: waypoints.length,
+      x: lat,
+      y: lon,
+      z: alt,
+      command: getCommandNumber(commandType),
+      autocontinue: 1,
+      current: 0,
+      frame: MAV_FRAME.GLOBAL_RELATIVE_ALT_INT,
+      param1: 0,
+      param2: 0,
+      param3: 0,
+      param4: 0
+    }
+    
+    console.log(`Adding ${commandType} waypoint:`, newWaypoint)
+    
+    // Send waypoint to drone via MAVLink (async operation handled separately)
+    if (connected) {
+      sendGuidedWaypoint(lat, lon, alt)
+        .then(() => {
+          showNotification(
+            `✅ Waypoint sent to drone: ${lat.toFixed(6)}, ${lon.toFixed(6)} at ${alt}m`, 
+            'success'
+          )
+          console.log(`Waypoint sent to drone successfully: ${lat.toFixed(6)}, ${lon.toFixed(6)} at ${alt}m`)
+        })
+        .catch((error) => {
+          showNotification("❌ Failed to send waypoint to drone", 'error')
+          console.error("Failed to send waypoint to drone:", error)
+        })
+    } else {
+      showNotification("⚠️ Not connected - waypoint added to mission only", 'info')
+      console.warn("Not connected to drone - waypoint added to mission only")
+    }
+    
+    // Notify parent component to add to waypoints array
+    onMapRightClick(lat, lon, 0, 0)
   }
 
   const handleMouseDown = (event: React.MouseEvent) => {
@@ -800,10 +1190,10 @@ export function MapComponent({
 
     return (
       <div
-        className="fixed bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50 py-1 min-w-48"
+        className="fixed bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50 py-1 min-w-48 max-w-64"
         style={{
-          left: contextMenu.x,
-          top: contextMenu.y,
+          left: Math.min(contextMenu.x, window.innerWidth - 260), // Prevent menu from going off-screen
+          top: Math.min(contextMenu.y, window.innerHeight - 400),
         }}
         onMouseLeave={() => setContextMenu(null)}
       >
@@ -812,22 +1202,54 @@ export function MapComponent({
             return <div key={index} className="border-t border-gray-200 dark:border-gray-600 my-1" />
           }
 
+          const hasSubmenu = option.submenu && option.submenu.length > 0
+
           return (
-            <div
-              key={index}
-              className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 ${
-                option.disabled
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
-              }`}
-              onClick={() => !option.disabled && handleContextMenuAction(option.action)}
-            >
-              {option.icon && <span className="w-4">{option.icon}</span>}
-              <span className="flex-1">{option.label}</span>
-              {option.submenu && <span className="text-xs">▶</span>}
+            <div key={index} className="relative group">
+              <div
+                className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between gap-2 ${
+                  option.disabled
+                    ? "text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-gray-700/50"
+                    : "hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-200"
+                }`}
+                onClick={() => !option.disabled && !hasSubmenu && handleContextMenuAction(option.action)}
+              >
+                <div className="flex items-center gap-2">
+                  {option.icon && <span className="w-4 text-center">{option.icon}</span>}
+                  <span className="flex-1">{option.label}</span>
+                </div>
+                {hasSubmenu && <span className="text-xs text-gray-400">▶</span>}
+              </div>
+              
+              {/* Submenu */}
+              {hasSubmenu && (
+                <div className="absolute left-full top-0 ml-1 hidden group-hover:block bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg py-1 min-w-44 z-50">
+                  {option.submenu!.map((subOption, subIndex) => (
+                    <div
+                      key={subIndex}
+                      className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 ${
+                        subOption.disabled
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-200"
+                      }`}
+                      onClick={() => !subOption.disabled && handleContextMenuAction(subOption.action)}
+                    >
+                      {subOption.icon && <span className="w-4 text-center">{subOption.icon}</span>}
+                      <span className="flex-1">{subOption.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
+        
+        {/* Mission Planner-style footer */}
+        <div className="border-t border-gray-200 dark:border-gray-600 mt-1 pt-1">
+          <div className="px-3 py-1 text-xs text-gray-500 dark:text-gray-400">
+            {contextMenu.lat.toFixed(6)}, {contextMenu.lon.toFixed(6)}
+          </div>
+        </div>
       </div>
     )
   }
@@ -927,6 +1349,19 @@ export function MapComponent({
       {isLoading && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/70 text-white px-4 py-2 rounded">
           Loading map tiles...
+        </div>
+      )}
+
+      {/* Notification System */}
+      {notification?.visible && (
+        <div className={`absolute top-20 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-50 max-w-md text-center font-medium ${
+          notification.type === 'success' 
+            ? 'bg-green-600 text-white' 
+            : notification.type === 'error'
+            ? 'bg-red-600 text-white'
+            : 'bg-blue-600 text-white'
+        }`}>
+          {notification.message}
         </div>
       )}
     </div>

@@ -57,6 +57,28 @@ export default function FlightData() {
   const [followDrone, setFollowDrone] = useState(true)
 
   const handleMapRightClick = (lat: number, lon: number, x: number, y: number) => {
+    // Check if this is a waypoint addition call (when x and y are 0)
+    if (x === 0 && y === 0) {
+      // This is a waypoint addition call from the map component
+      const newWaypoint: Waypoint = {
+        seq: waypoints.length,
+        x: lat,
+        y: lon,
+        z: 10, // Default altitude
+        command: 16, // MAV_CMD_NAV_WAYPOINT
+        autocontinue: 1,
+        current: 0,
+        frame: 6, // MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+        param1: 0,
+        param2: 0,
+        param3: 0,
+        param4: 0
+      }
+      commands.addWaypoint(newWaypoint)
+      return
+    }
+    
+    // Otherwise, show context menu
     setContextMenu({ x, y, lat, lon })
   }
 

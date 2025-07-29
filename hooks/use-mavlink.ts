@@ -118,6 +118,10 @@ export function useMAVLink() {
     connectionRef.current?.clearWaypoints()
   }
 
+  const addWaypoint = (waypoint: Waypoint) => {
+    setWaypoints(prev => [...prev, waypoint])
+  }
+
   const startMission = () => {
     connectionRef.current?.startMission()
   }
@@ -146,6 +150,7 @@ export function useMAVLink() {
       uploadWaypoints,
       downloadWaypoints,
       clearWaypoints,
+      addWaypoint,
       startMission,
       pauseMission,
       resumeMission,
