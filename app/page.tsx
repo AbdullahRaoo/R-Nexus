@@ -126,7 +126,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {connected && telemetry ? `${telemetry.battery.percentage.toFixed(1)}%` : "0.0%"}
+                {connected && telemetry ? `${telemetry.battery.percentage.toFixed(1)}%` : "0.00%"}
               </div>
               <Progress value={connected && telemetry ? telemetry.battery.percentage : 0} className="mt-2" />
               <p className="text-xs text-muted-foreground mt-2">
@@ -157,10 +157,10 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {connected && telemetry ? `${telemetry.position.alt_rel.toFixed(1)}m` : "0.0m"}
+                {connected && telemetry ? `${telemetry.position.alt_rel.toFixed(1)}m` : "0.00m"}
               </div>
               <p className="text-xs text-muted-foreground">
-                AGL: {connected && telemetry ? `${(telemetry.position.alt_rel - 0).toFixed(1)}m` : "0.0m"}
+                AGL: {connected && telemetry ? `${(telemetry.position.alt_rel - 0).toFixed(1)}m` : "0.00m"}
               </p>
             </CardContent>
           </Card>
@@ -172,10 +172,10 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {connected && telemetry ? `${telemetry.velocity.ground_speed.toFixed(1)} m/s` : "0.0 m/s"}
+                {connected && telemetry ? `${telemetry.velocity.ground_speed.toFixed(1)} m/s` : "0.00 m/s"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {connected && telemetry ? `${(telemetry.velocity.ground_speed * 3.6).toFixed(1)} km/h` : "0.0 km/h"}
+                {connected && telemetry ? `${(telemetry.velocity.ground_speed * 3.6).toFixed(1)} km/h` : "0.00 km/h"}
               </p>
             </CardContent>
           </Card>
@@ -197,7 +197,7 @@ export default function Dashboard() {
               <Thermometer className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{connected && telemetry ? `${(25.0).toFixed(1)}°C` : "0.0°C"}</div>
+              <div className="text-2xl font-bold">{connected && telemetry ? `${(25.0).toFixed(1)}°C` : "0.00°C"}</div>
               <p className="text-xs text-muted-foreground">System temp</p>
             </CardContent>
           </Card>
