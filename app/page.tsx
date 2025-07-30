@@ -49,7 +49,7 @@ export default function Dashboard() {
     return {
       name: "No Recent Mission",
       duration: "00:00",
-      distance: "0.0",
+      distance: "0.00",
       waypoints: 0,
       status: "No Data",
       batteryUsed: 0,
@@ -83,7 +83,7 @@ export default function Dashboard() {
                 <div>
                   <div className="font-medium text-yellow-700 dark:text-yellow-400">No UAV Connection</div>
                   <div className="text-sm text-yellow-600 dark:text-yellow-300">
-                    Connect to view real-time telemetry data
+                    Connect to view Real-Time Telemetry data
                   </div>
                 </div>
               </div>
