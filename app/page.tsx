@@ -38,7 +38,7 @@ export default function Dashboard() {
       return {
         name: "No Mission Data",
         duration: "00:00",
-        distance: "0.0",
+        distance: "0.00",
         waypoints: 0,
         status: "No Data",
         batteryUsed: 0,
