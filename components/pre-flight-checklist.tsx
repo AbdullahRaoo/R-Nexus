@@ -195,7 +195,7 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="max-h-72 overflow-y-auto py-2 flex flex-col gap-4">
+  <div className="py-2 flex flex-col gap-4">
           {/* Automatic Checks Section */}
           <div>
             <h4 className="text-sm font-semibold mb-2 text-blue-700">Automatic Checks</h4>

@@ -463,7 +463,7 @@ export default function FlightData() {
               <MissionPlannerHUD telemetry={telemetry} connected={connected} />
 
               {/* Pre-Flight Checklist */}
-              <PreFlightChecklist telemetry={telemetry} connected={connected} onArmDisarm={handleArmDisarm} />
+              <PreFlightChecklist telemetry={telemetry} connected={connected} onArmDisarm={handleArmDisarm} expanded />
 
               {/* Waypoints Panel */}
               <Card>
