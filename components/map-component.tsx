@@ -1367,13 +1367,73 @@ export function MapComponent({
       {/* Zoom controls */}
       <div className="absolute bottom-4 left-4 flex flex-col gap-1">
         <button
-          onClick={() => setMapZoom((prev) => Math.min(20, prev + 1))}
+          onClick={() => {
+            const newZoom = Math.min(20, mapZoom + 1)
+            let cursorX, cursorY
+            if (crosshairPos) {
+              cursorX = crosshairPos.x
+              cursorY = crosshairPos.y
+            } else {
+              // Default to center of canvas
+              const canvas = canvasRef.current
+              cursorX = canvas ? canvas.width / 2 : 0
+              cursorY = canvas ? canvas.height / 2 : 0
+            }
+            // Calculate lat/lon under cursor before zoom
+            const { lat, lon } = pixelToLatLon(cursorX, cursorY)
+            // Calculate new map center so cursor stays at same geo point
+            const canvas = canvasRef.current
+            if (canvas) {
+              const scale = Math.pow(2, newZoom)
+              const worldX = ((lon + 180) / 360) * 256 * scale
+              const worldY = ((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * 256 * scale
+              const centerWorldX = worldX - (cursorX - canvas.width / 2)
+              const centerWorldY = worldY - (cursorY - canvas.height / 2)
+              const newCenterLon = (centerWorldX / (256 * scale)) * 360 - 180
+              const n = Math.PI - (2 * Math.PI * centerWorldY) / (256 * scale)
+              const newCenterLat = (Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)))) * (180 / Math.PI)
+              setMapZoom(newZoom)
+              setMapCenter({ lat: newCenterLat, lon: newCenterLon })
+            } else {
+              setMapZoom(newZoom)
+            }
+          }}
           className="bg-black/70 text-white w-8 h-8 rounded flex items-center justify-center hover:bg-black/90 transition-colors text-lg font-bold"
         >
           +
         </button>
         <button
-          onClick={() => setMapZoom((prev) => Math.max(1, prev - 1))}
+          onClick={() => {
+            const newZoom = Math.max(1, mapZoom - 1)
+            let cursorX, cursorY
+            if (crosshairPos) {
+              cursorX = crosshairPos.x
+              cursorY = crosshairPos.y
+            } else {
+              // Default to center of canvas
+              const canvas = canvasRef.current
+              cursorX = canvas ? canvas.width / 2 : 0
+              cursorY = canvas ? canvas.height / 2 : 0
+            }
+            // Calculate lat/lon under cursor before zoom
+            const { lat, lon } = pixelToLatLon(cursorX, cursorY)
+            // Calculate new map center so cursor stays at same geo point
+            const canvas = canvasRef.current
+            if (canvas) {
+              const scale = Math.pow(2, newZoom)
+              const worldX = ((lon + 180) / 360) * 256 * scale
+              const worldY = ((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * 256 * scale
+              const centerWorldX = worldX - (cursorX - canvas.width / 2)
+              const centerWorldY = worldY - (cursorY - canvas.height / 2)
+              const newCenterLon = (centerWorldX / (256 * scale)) * 360 - 180
+              const n = Math.PI - (2 * Math.PI * centerWorldY) / (256 * scale)
+              const newCenterLat = (Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)))) * (180 / Math.PI)
+              setMapZoom(newZoom)
+              setMapCenter({ lat: newCenterLat, lon: newCenterLon })
+            } else {
+              setMapZoom(newZoom)
+            }
+          }}
           className="bg-black/70 text-white w-8 h-8 rounded flex items-center justify-center hover:bg-black/90 transition-colors text-lg font-bold"
         >
           −
