@@ -195,81 +195,77 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto py-4">
-          <div className="flex flex-row gap-6">
-            {/* Automatic Checks */}
-            <div className="min-w-[320px] max-w-[340px] flex-shrink-0 bg-background rounded-lg shadow p-4 flex flex-col gap-2">
-              <h4 className="text-sm font-medium mb-2">Automatic Checks</h4>
+        <div className="max-h-72 overflow-y-auto py-2 flex flex-col gap-4">
+          {/* Automatic Checks Section */}
+          <div>
+            <h4 className="text-sm font-semibold mb-2 text-blue-700">Automatic Checks</h4>
+            <ul className="space-y-2">
               {automaticChecks.map((check) => (
-                <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
-                  {getStatusIcon(check.status)}
+                <li key={check.id} className="flex items-start gap-3 p-3 rounded-lg border bg-background">
+                  <div className="mt-1">{getStatusIcon(check.status)}</div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{check.label}</span>
+                      <span className="text-base font-medium">{check.label}</span>
                       {check.required && (
-                        <Badge variant="outline" className="text-xs">
-                          Required
-                        </Badge>
+                        <Badge variant="outline" className="text-xs">Required</Badge>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">{check.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{check.description}</div>
                   </div>
                   <Badge variant="outline" className={getStatusColor(check.status)}>
                     {check.status.toUpperCase()}
                   </Badge>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
+          </div>
 
-            {/* Manual Checks */}
-            <div className="min-w-[320px] max-w-[340px] flex-shrink-0 bg-background rounded-lg shadow p-4 flex flex-col gap-2">
-              <h4 className="text-sm font-medium mb-2">Manual Checks</h4>
+          {/* Manual Checks Section */}
+          <div>
+            <h4 className="text-sm font-semibold mb-2 text-green-700">Manual Checks</h4>
+            <ul className="space-y-2">
               {manualChecks_items.map((check) => (
-                <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
+                <li key={check.id} className="flex items-start gap-3 p-3 rounded-lg border bg-background">
                   <Checkbox
                     checked={manualChecks[check.id] || false}
                     onCheckedChange={(checked) => setManualChecks((prev) => ({ ...prev, [check.id]: !!checked }))}
+                    className="mt-1"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{check.label}</span>
+                      <span className="text-base font-medium">{check.label}</span>
                       {check.required && (
-                        <Badge variant="outline" className="text-xs">
-                          Required
-                        </Badge>
+                        <Badge variant="outline" className="text-xs">Required</Badge>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">{check.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{check.description}</div>
                   </div>
                   <Badge variant="outline" className={getStatusColor(check.status)}>
                     {check.status.toUpperCase()}
                   </Badge>
-                </div>
+                </li>
               ))}
+            </ul>
+          </div>
+
+          {/* Arm/Disarm Controls Section */}
+          <div className="pt-2 border-t">
+            <div className="flex gap-2">
+              <Button
+                onClick={() => onArmDisarm(!telemetry?.armed)}
+                disabled={!connected || (!canArm && !telemetry?.armed)}
+                variant={telemetry?.armed ? "destructive" : "default"}
+                className="flex-1"
+              >
+                {telemetry?.armed ? "DISARM" : "ARM"} MOTORS
+              </Button>
             </div>
-
-            {/* Arm/Disarm Controls */}
-            <div className="min-w-[320px] max-w-[340px] flex-shrink-0 bg-background rounded-lg shadow p-4 flex flex-col gap-2">
-              <div className="pt-4 border-t">
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => onArmDisarm(!telemetry?.armed)}
-                    disabled={!connected || (!canArm && !telemetry?.armed)}
-                    variant={telemetry?.armed ? "destructive" : "default"}
-                    className="flex-1"
-                  >
-                    {telemetry?.armed ? "DISARM" : "ARM"} MOTORS
-                  </Button>
-                </div>
-
-                {!canArm && !telemetry?.armed && (
-                  <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Complete all required checks before arming
-                  </div>
-                )}
+            {!canArm && !telemetry?.armed && (
+              <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Complete all required checks before arming
               </div>
-            </div>
+            )}
           </div>
         </div>
       </CardContent>
