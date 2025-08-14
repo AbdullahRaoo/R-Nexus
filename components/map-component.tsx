@@ -1314,21 +1314,32 @@ export function MapComponent({
         onMouseLeave={() => setCrosshairPos(null)}
       />
 
-      {/* Map provider selector */}
-      <div className="absolute top-2 left-2 bg-black/70 text-white text-xs rounded overflow-hidden">
-        <select
-          value={mapProvider}
-          onChange={(e) => setMapProvider(e.target.value as MapProvider)}
-          className="bg-transparent text-white px-2 py-1 outline-none"
-        >
-          <option value="google_satellite">Google Satellite</option>
-          <option value="google_hybrid">Google Hybrid</option>
-          <option value="google_terrain">Google Terrain</option>
-          <option value="bing_satellite">Bing Satellite</option>
-          <option value="bing_hybrid">Bing Hybrid</option>
-          <option value="osm">OpenStreetMap</option>
-        </select>
-        <span className="px-2 py-1 border-l border-white/30">
+      {/* Redesigned Map provider selector */}
+      <div className="absolute top-2 left-2 bg-black/70 text-white text-xs rounded-lg shadow-lg px-3 py-2 flex items-center gap-2">
+        {/* Provider buttons */}
+        {[
+          { key: "google_satellite", label: "Satellite", icon: "🛰️", tooltip: "Google Satellite" },
+          { key: "google_hybrid", label: "Hybrid", icon: "🌐", tooltip: "Google Hybrid" },
+          { key: "google_terrain", label: "Terrain", icon: "⛰️", tooltip: "Google Terrain" },
+          { key: "bing_satellite", label: "Bing Sat", icon: "🛰️", tooltip: "Bing Satellite" },
+          { key: "bing_hybrid", label: "Bing Hybrid", icon: "🌐", tooltip: "Bing Hybrid" },
+          { key: "osm", label: "OSM", icon: "🗺️", tooltip: "OpenStreetMap" },
+        ].map((provider) => (
+          <button
+            key={provider.key}
+            onClick={() => setMapProvider(provider.key as MapProvider)}
+            className={`flex flex-col items-center px-2 py-1 rounded transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-blue-600/30 ${
+              mapProvider === provider.key ? "bg-blue-600/70 text-white font-bold" : "bg-transparent text-white"
+            }`}
+            title={provider.tooltip}
+            aria-label={provider.tooltip}
+          >
+            <span className="text-lg mb-0.5">{provider.icon}</span>
+            <span className="text-[10px] leading-none">{provider.label}</span>
+          </button>
+        ))}
+        {/* Zoom and GPS status */}
+        <span className="ml-3 px-2 py-1 border-l border-white/30">
           Zoom: {mapZoom}
           {connected && telemetry && (
             <span className="ml-2 text-green-400">• GPS: {telemetry.gps.fix_type >= 3 ? "3D_FIX" : "NO_FIX"}</span>
@@ -1456,15 +1467,18 @@ export function MapComponent({
         </div>
       )}
 
-      {/* Notification System */}
+      {/* Notification System - moved to bottom center to avoid overlap with selector */}
       {notification?.visible && (
-        <div className={`absolute top-20 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-50 max-w-md text-center font-medium ${
-          notification.type === 'success' 
-            ? 'bg-green-600 text-white' 
-            : notification.type === 'error'
-            ? 'bg-red-600 text-white'
-            : 'bg-blue-600 text-white'
-        }`}>
+        <div
+          className={`absolute left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-50 max-w-md text-center font-medium ${
+            notification.type === 'success'
+              ? 'bg-green-600 text-white'
+              : notification.type === 'error'
+              ? 'bg-red-600 text-white'
+              : 'bg-blue-600 text-white'
+          }`}
+          style={{ top: '74px' }} // 24px selector height + 50px margin
+        >
           {notification.message}
         </div>
       )}

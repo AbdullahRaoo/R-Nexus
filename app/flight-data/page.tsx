@@ -285,20 +285,20 @@ export default function FlightData() {
         <div className="flex-1 relative">
           {/* Disconnected Status Panel */}
           {!connected && (
-            <Card className="absolute top-4 left-4 z-20 w-80 bg-red-500/5 border-red-500/20">
+            <Card className="absolute left-4 z-20 w-80 border-red-400" style={{ top: '74px', backgroundColor: 'rgba(0,0,0,0.8)' }}> 
               <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
-                  <div className="space-y-1">
-                    <div className="font-medium text-red-700 dark:text-red-400">No MAVLink Connection</div>
-                    <div className="text-sm text-red-600 dark:text-red-300">
-                      Waiting for SiK Radio telemetry module...
-                    </div>
-                    <div className="text-xs text-red-500 dark:text-red-400">
-                      Check serial connection and ensure MAVLink service is running
-                    </div>
-                  </div>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
+                <div className="space-y-1">
+                <div className="font-medium text-red-700 dark:text-red-400">No MAVLink Connection</div>
+                <div className="text-sm text-red-600 dark:text-red-300">
+                  Waiting for SiK Radio telemetry module...
                 </div>
+                <div className="text-xs text-red-500 dark:text-red-400">
+                  Check serial connection and ensure MAVLink service is running
+                </div>
+                </div>
+              </div>
               </CardContent>
             </Card>
           )}
