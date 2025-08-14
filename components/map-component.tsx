@@ -355,25 +355,18 @@ export function MapComponent({
     if (!ctx) return
 
     try {
-      // Clear canvas with a solid background to prevent white flashes
-      ctx.fillStyle = "#e2e8f0" // slate-200 background
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Calculate the center tile and pixel offsets for smoother movement
-      const scale = Math.pow(2, mapZoom)
-      const centerWorldX = ((mapCenter.lon + 180) / 360) * 256 * scale
-      const centerWorldY = ((1 - Math.asinh(Math.tan(deg2rad(mapCenter.lat))) / Math.PI) / 2) * 256 * scale
-      
-      const centerTileX = Math.floor(centerWorldX / 256)
-      const centerTileY = Math.floor(centerWorldY / 256)
-      
-      // Calculate pixel offsets for sub-tile positioning
-      const offsetX = (centerWorldX % 256) - 128
-      const offsetY = (centerWorldY % 256) - 128
-
       const tileSize = 256
       const tilesX = Math.ceil(canvas.width / tileSize) + 3
       const tilesY = Math.ceil(canvas.height / tileSize) + 3
+
+      // Calculate center tile and offset
+      const center = mapCenter
+      const centerTile = latLonToTileXY(center.lat, center.lon, mapZoom)
+      const centerTileX = centerTile.x
+      const centerTileY = centerTile.y
+      const centerPixel = latLonToPixel(center.lat, center.lon)
+      const offsetX = centerPixel.x - canvas.width / 2
+      const offsetY = centerPixel.y - canvas.height / 2
 
       // Draw tiles with precise positioning
       for (let dx = -Math.floor(tilesX / 2); dx <= Math.floor(tilesX / 2); dx++) {
@@ -1319,11 +1312,19 @@ export function MapComponent({
     <div
       ref={mapRef}
       className="w-full h-full relative overflow-hidden select-none bg-slate-200 touch-none"
-      style={{ cursor: isDragging ? "grabbing" : "crosshair" }}
+      style={{
+        cursor: isDragging ? "grabbing" : "crosshair",
+        willChange: "transform",
+        transform: "translateZ(0)",
+      }}
     >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
+        style={{
+          willChange: "transform",
+          transform: "translateZ(0)",
+        }}
         onContextMenu={handleRightClick}
         onClick={handleClick}
         onMouseDown={handleMouseDown}
