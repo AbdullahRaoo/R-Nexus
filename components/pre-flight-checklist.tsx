@@ -195,11 +195,11 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto whitespace-nowrap py-4">
-          {/* Automatic Checks */}
-          <div className="inline-block align-top mr-6 w-[340px]">
-            <h4 className="text-sm font-medium mb-2">Automatic Checks</h4>
-            <div className="space-y-2">
+        <div className="overflow-x-auto py-4">
+          <div className="flex flex-row gap-6">
+            {/* Automatic Checks */}
+            <div className="min-w-[320px] max-w-[340px] flex-shrink-0 bg-background rounded-lg shadow p-4 flex flex-col gap-2">
+              <h4 className="text-sm font-medium mb-2">Automatic Checks</h4>
               {automaticChecks.map((check) => (
                 <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
                   {getStatusIcon(check.status)}
@@ -220,12 +220,10 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Manual Checks */}
-          <div className="inline-block align-top mr-6 w-[340px]">
-            <h4 className="text-sm font-medium mb-2">Manual Checks</h4>
-            <div className="space-y-2">
+            {/* Manual Checks */}
+            <div className="min-w-[320px] max-w-[340px] flex-shrink-0 bg-background rounded-lg shadow p-4 flex flex-col gap-2">
+              <h4 className="text-sm font-medium mb-2">Manual Checks</h4>
               {manualChecks_items.map((check) => (
                 <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
                   <Checkbox
@@ -249,28 +247,28 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Arm/Disarm Controls */}
-          <div className="inline-block align-top w-[340px]">
-            <div className="pt-4 border-t">
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => onArmDisarm(!telemetry?.armed)}
-                  disabled={!connected || (!canArm && !telemetry?.armed)}
-                  variant={telemetry?.armed ? "destructive" : "default"}
-                  className="flex-1"
-                >
-                  {telemetry?.armed ? "DISARM" : "ARM"} MOTORS
-                </Button>
-              </div>
-
-              {!canArm && !telemetry?.armed && (
-                <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  Complete all required checks before arming
+            {/* Arm/Disarm Controls */}
+            <div className="min-w-[320px] max-w-[340px] flex-shrink-0 bg-background rounded-lg shadow p-4 flex flex-col gap-2">
+              <div className="pt-4 border-t">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => onArmDisarm(!telemetry?.armed)}
+                    disabled={!connected || (!canArm && !telemetry?.armed)}
+                    variant={telemetry?.armed ? "destructive" : "default"}
+                    className="flex-1"
+                  >
+                    {telemetry?.armed ? "DISARM" : "ARM"} MOTORS
+                  </Button>
                 </div>
-              )}
+
+                {!canArm && !telemetry?.armed && (
+                  <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Complete all required checks before arming
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

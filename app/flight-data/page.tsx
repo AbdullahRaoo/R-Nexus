@@ -464,10 +464,12 @@ export default function FlightData() {
                 <MissionPlannerHUD telemetry={telemetry} connected={connected} />
               </ScrollArea>
 
-              {/* Pre-Flight Checklist */}
-              <div>
-                <PreFlightChecklist telemetry={telemetry} connected={connected} onArmDisarm={handleArmDisarm} />
-              </div>
+              {/* Pre-Flight Checklist - Horizontally Scrollable */}
+              <ScrollArea className="h-72 overflow-x-auto">
+                <div className="min-w-full pr-16">
+                  <PreFlightChecklist telemetry={telemetry} connected={connected} onArmDisarm={handleArmDisarm} />
+                </div>
+              </ScrollArea>
 
               {/* Waypoints Panel */}
               <Card>
