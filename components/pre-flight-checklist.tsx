@@ -185,7 +185,7 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
   }
 
   return (
-    <Card>
+  <Card className="max-w-[18rem] mx-auto">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center justify-between">
           Pre-Flight Checklist
