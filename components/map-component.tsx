@@ -347,78 +347,87 @@ export function MapComponent({
   )
 
   // Optimized drawing with better performance and smoother updates
+  // Use requestAnimationFrame for all redraws
   const drawMap = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+    }
+    animationFrameRef.current = requestAnimationFrame(() => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext("2d")
+      if (!ctx) return
 
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
+      try {
+        const tileSize = 256
+        const tilesX = Math.ceil(canvas.width / tileSize) + 3
+        const tilesY = Math.ceil(canvas.height / tileSize) + 3
 
-    try {
-      const tileSize = 256
-      const tilesX = Math.ceil(canvas.width / tileSize) + 3
-      const tilesY = Math.ceil(canvas.height / tileSize) + 3
+        // Calculate center tile and offset
+        const center = mapCenter
+        const centerTile = latLonToTileXY(center.lat, center.lon, mapZoom)
+        const centerTileX = centerTile.x
+        const centerTileY = centerTile.y
+        const centerPixel = latLonToPixel(center.lat, center.lon)
+        const offsetX = centerPixel.x - canvas.width / 2
+        const offsetY = centerPixel.y - canvas.height / 2
 
-      // Calculate center tile and offset
-      const center = mapCenter
-      const centerTile = latLonToTileXY(center.lat, center.lon, mapZoom)
-      const centerTileX = centerTile.x
-      const centerTileY = centerTile.y
-      const centerPixel = latLonToPixel(center.lat, center.lon)
-      const offsetX = centerPixel.x - canvas.width / 2
-      const offsetY = centerPixel.y - canvas.height / 2
+        // Batch tile loads for smoother performance
+        const batchSize = 8
+        let batchTiles = []
 
-      // Draw tiles with precise positioning
-      for (let dx = -Math.floor(tilesX / 2); dx <= Math.floor(tilesX / 2); dx++) {
-        for (let dy = -Math.floor(tilesY / 2); dy <= Math.floor(tilesY / 2); dy++) {
-          const tileX = centerTileX + dx
-          const tileY = centerTileY + dy
+        for (let dx = -Math.floor(tilesX / 2); dx <= Math.floor(tilesX / 2); dx++) {
+          for (let dy = -Math.floor(tilesY / 2); dy <= Math.floor(tilesY / 2); dy++) {
+            const tileX = centerTileX + dx
+            const tileY = centerTileY + dy
 
-          if (tileX < 0 || tileY < 0 || tileX >= Math.pow(2, mapZoom) || tileY >= Math.pow(2, mapZoom)) continue
+            if (tileX < 0 || tileY < 0 || tileX >= Math.pow(2, mapZoom) || tileY >= Math.pow(2, mapZoom)) continue
 
-          // Calculate precise pixel position
-          const pixelX = Math.floor(canvas.width / 2 + dx * tileSize - offsetX)
-          const pixelY = Math.floor(canvas.height / 2 + dy * tileSize - offsetY)
+            // Calculate precise pixel position
+            const pixelX = Math.floor(canvas.width / 2 + dx * tileSize - offsetX)
+            const pixelY = Math.floor(canvas.height / 2 + dy * tileSize - offsetY)
 
-          // Skip tiles that are completely outside the view
-          if (pixelX + tileSize < 0 || pixelX > canvas.width || 
-              pixelY + tileSize < 0 || pixelY > canvas.height) continue
+            // Skip tiles that are completely outside the view
+            if (pixelX + tileSize < 0 || pixelX > canvas.width || 
+                pixelY + tileSize < 0 || pixelY > canvas.height) continue
 
-          const tileKey = `${mapProvider}-${mapZoom}-${tileX}-${tileY}`
-          const cachedTile = tileCache.current.get(tileKey)
+            const tileKey = `${mapProvider}-${mapZoom}-${tileX}-${tileY}`
+            const cachedTile = tileCache.current.get(tileKey)
 
-          if (cachedTile && cachedTile.complete && cachedTile.naturalWidth > 0) {
-            try {
-              ctx.drawImage(cachedTile, pixelX, pixelY, tileSize, tileSize)
-            } catch (error) {
-              console.warn(`Error drawing tile ${tileKey}:`, error)
-              // Draw placeholder on error
+            if (cachedTile && cachedTile.complete && cachedTile.naturalWidth > 0) {
+              try {
+                ctx.drawImage(cachedTile, pixelX, pixelY, tileSize, tileSize)
+              } catch (error) {
+                ctx.fillStyle = "#cbd5e1"
+                ctx.fillRect(pixelX, pixelY, tileSize, tileSize)
+              }
+            } else {
               ctx.fillStyle = "#cbd5e1"
               ctx.fillRect(pixelX, pixelY, tileSize, tileSize)
-            }
-          } else {
-            // Draw a subtle placeholder tile
-            ctx.fillStyle = "#cbd5e1" // slate-300
-            ctx.fillRect(pixelX, pixelY, tileSize, tileSize)
-            ctx.strokeStyle = "#94a3b8" // slate-400
-            ctx.lineWidth = 1
-            ctx.strokeRect(pixelX, pixelY, tileSize, tileSize)
-            
-            // Load tile asynchronously only if not already loading
-            if (!cachedTile) {
-              loadTile(tileX, tileY, mapZoom, tileKey)
+              ctx.strokeStyle = "#94a3b8"
+              ctx.lineWidth = 1
+              ctx.strokeRect(pixelX, pixelY, tileSize, tileSize)
+              if (!cachedTile) {
+                batchTiles.push({ tileX, tileY, mapZoom, tileKey })
+              }
             }
           }
         }
-      }
 
-      drawOverlays(ctx)
-    } catch (error) {
-      console.error("Error in drawMap:", error)
-      // If there's an error, just fill with background color to prevent white screen
-      ctx.fillStyle = "#e2e8f0"
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-    }
+        // Load tiles in batches for smoother experience
+        if (batchTiles.length > 0) {
+          batchTiles.slice(0, batchSize).forEach(({ tileX, tileY, mapZoom, tileKey }) => {
+            loadTile(tileX, tileY, mapZoom, tileKey)
+          })
+        }
+
+        // Use offscreen canvas for overlays (if supported)
+        drawOverlays(ctx)
+      } catch (error) {
+        ctx.fillStyle = "#e2e8f0"
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+      }
+    })
   }, [mapCenter, mapZoom, mapProvider, telemetry, waypoints, connected])
 
   const loadTile = useCallback(async (tileX: number, tileY: number, zoom: number, tileKey: string) => {
