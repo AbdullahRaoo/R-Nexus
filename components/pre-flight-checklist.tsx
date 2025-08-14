@@ -198,14 +198,14 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
   <div className="py-2 flex flex-col gap-4">
           {/* Automatic Checks Section */}
           <div>
-            <h4 className="text-sm font-semibold mb-2 text-blue-700">Automatic Checks</h4>
+            <h4 className="text-sm font-semibold mb-2 text-blue-700 pl-6">Automatic Checks</h4>
             <ul className="space-y-2">
               {automaticChecks.map((check) => (
                 <li key={check.id} className="flex items-start gap-3 p-3 rounded-lg border bg-background">
                   <div className="mt-1">{getStatusIcon(check.status)}</div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-medium">{check.label}</span>
+                      <span className="font-medium" style={{ fontSize: '0.68812rem' }}>{check.label}</span>
                       {check.required && (
                         <span title="Required" className="inline-flex items-center justify-center text-yellow-600"><AlertTriangle className="h-4 w-4" /></span>
                       )}
@@ -222,7 +222,7 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
 
           {/* Manual Checks Section */}
           <div>
-            <h4 className="text-sm font-semibold mb-2 text-green-700">Manual Checks</h4>
+            <h4 className="text-sm font-semibold mb-2 text-green-700 pl-6">Manual Checks</h4>
             <ul className="space-y-2">
               {manualChecks_items.map((check) => (
                 <li key={check.id} className="flex items-start gap-3 p-3 rounded-lg border bg-background">
@@ -233,7 +233,7 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-medium">{check.label}</span>
+                      <span className="font-medium" style={{ fontSize: '0.68812rem' }}>{check.label}</span>
                       {check.required && (
                         <span title="Required" className="inline-flex items-center justify-center text-yellow-600"><AlertTriangle className="h-4 w-4" /></span>
                       )}
