@@ -207,7 +207,7 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
                     <div className="flex items-center gap-2">
                       <span className="text-base font-medium">{check.label}</span>
                       {check.required && (
-                        <Badge variant="outline" className="text-xs">Required</Badge>
+                        <span title="Required" className="inline-flex items-center justify-center text-yellow-600"><AlertTriangle className="h-4 w-4" /></span>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">{check.description}</div>
@@ -235,7 +235,7 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
                     <div className="flex items-center gap-2">
                       <span className="text-base font-medium">{check.label}</span>
                       {check.required && (
-                        <Badge variant="outline" className="text-xs">Required</Badge>
+                        <span title="Required" className="inline-flex items-center justify-center text-yellow-600"><AlertTriangle className="h-4 w-4" /></span>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">{check.description}</div>
