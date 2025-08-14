@@ -54,7 +54,7 @@ export function MissionPlannerHUD({ telemetry, connected }: MissionPlannerHUDPro
   }
 
   return (
-    <div className="space-y-4">
+    <div className="max-h-[80vh] overflow-y-auto space-y-4 pr-2">
       {/* System Status */}
       <Card>
         <CardHeader className="pb-3">

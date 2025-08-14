@@ -194,81 +194,85 @@ export function PreFlightChecklist({ telemetry, connected, onArmDisarm }: PreFli
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Automatic Checks */}
-        <div>
-          <h4 className="text-sm font-medium mb-2">Automatic Checks</h4>
-          <div className="space-y-2">
-            {automaticChecks.map((check) => (
-              <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
-                {getStatusIcon(check.status)}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{check.label}</span>
-                    {check.required && (
-                      <Badge variant="outline" className="text-xs">
-                        Required
-                      </Badge>
-                    )}
+      <CardContent className="p-0">
+        <div className="overflow-x-auto whitespace-nowrap py-4">
+          {/* Automatic Checks */}
+          <div className="inline-block align-top mr-6 w-[340px]">
+            <h4 className="text-sm font-medium mb-2">Automatic Checks</h4>
+            <div className="space-y-2">
+              {automaticChecks.map((check) => (
+                <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
+                  {getStatusIcon(check.status)}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{check.label}</span>
+                      {check.required && (
+                        <Badge variant="outline" className="text-xs">
+                          Required
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{check.description}</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">{check.description}</div>
+                  <Badge variant="outline" className={getStatusColor(check.status)}>
+                    {check.status.toUpperCase()}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className={getStatusColor(check.status)}>
-                  {check.status.toUpperCase()}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Manual Checks */}
-        <div>
-          <h4 className="text-sm font-medium mb-2">Manual Checks</h4>
-          <div className="space-y-2">
-            {manualChecks_items.map((check) => (
-              <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
-                <Checkbox
-                  checked={manualChecks[check.id] || false}
-                  onCheckedChange={(checked) => setManualChecks((prev) => ({ ...prev, [check.id]: !!checked }))}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{check.label}</span>
-                    {check.required && (
-                      <Badge variant="outline" className="text-xs">
-                        Required
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{check.description}</div>
-                </div>
-                <Badge variant="outline" className={getStatusColor(check.status)}>
-                  {check.status.toUpperCase()}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Arm/Disarm Controls */}
-        <div className="pt-4 border-t">
-          <div className="flex gap-2">
-            <Button
-              onClick={() => onArmDisarm(!telemetry?.armed)}
-              disabled={!connected || (!canArm && !telemetry?.armed)}
-              variant={telemetry?.armed ? "destructive" : "default"}
-              className="flex-1"
-            >
-              {telemetry?.armed ? "DISARM" : "ARM"} MOTORS
-            </Button>
-          </div>
-
-          {!canArm && !telemetry?.armed && (
-            <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              Complete all required checks before arming
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Manual Checks */}
+          <div className="inline-block align-top mr-6 w-[340px]">
+            <h4 className="text-sm font-medium mb-2">Manual Checks</h4>
+            <div className="space-y-2">
+              {manualChecks_items.map((check) => (
+                <div key={check.id} className="flex items-center gap-3 p-2 rounded border">
+                  <Checkbox
+                    checked={manualChecks[check.id] || false}
+                    onCheckedChange={(checked) => setManualChecks((prev) => ({ ...prev, [check.id]: !!checked }))}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{check.label}</span>
+                      {check.required && (
+                        <Badge variant="outline" className="text-xs">
+                          Required
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{check.description}</div>
+                  </div>
+                  <Badge variant="outline" className={getStatusColor(check.status)}>
+                    {check.status.toUpperCase()}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Arm/Disarm Controls */}
+          <div className="inline-block align-top w-[340px]">
+            <div className="pt-4 border-t">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => onArmDisarm(!telemetry?.armed)}
+                  disabled={!connected || (!canArm && !telemetry?.armed)}
+                  variant={telemetry?.armed ? "destructive" : "default"}
+                  className="flex-1"
+                >
+                  {telemetry?.armed ? "DISARM" : "ARM"} MOTORS
+                </Button>
+              </div>
+
+              {!canArm && !telemetry?.armed && (
+                <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Complete all required checks before arming
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

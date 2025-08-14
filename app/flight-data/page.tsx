@@ -459,10 +459,10 @@ export default function FlightData() {
                 <FlightInstruments telemetry={telemetry} connected={connected} />
               </div>
 
-              {/* Mission Planner HUD */}
-              <div>
+              {/* Mission Planner HUD - Scrollable */}
+              <ScrollArea className="h-96">
                 <MissionPlannerHUD telemetry={telemetry} connected={connected} />
-              </div>
+              </ScrollArea>
 
               {/* Pre-Flight Checklist */}
               <div>
